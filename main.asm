@@ -23,6 +23,8 @@ STE2007_POWERCTRL_ALL_ON:		.equ	0x07
 STE2007_DISPLAYNORMAL:			.equ	0xA6
 STE2007_DISPLAYON:				.equ	0xAF
 
+BlockWidth:						.equ	0x08
+
  	.text								; BOILERPLATE	Assemble into program memory
 	.retain								; BOILERPLATE	Override ELF conditional linking and retain current section
 	.retainrefs							; BOILERPLATE	Retain any sections that have references to current section
@@ -53,6 +55,13 @@ main:
 	clr		R10							; used to move the cursor around
 	clr		R11
 
+	clr		R7							; used as a loop counter for writeBlock
+
+	mov		#0x0004, R12				; R12 gets middle row for setAddress
+	mov		#0x002C, R13				; R13 gets the middle column for setAddress
+
+	call	#setAddress
+
 while1:
 	bit.b	#8, &P2IN					; bit 3 of P1IN set?
 	jnz 	while1						; Yes, branch back and wait
@@ -61,18 +70,17 @@ while0:
 	bit.b	#8, &P2IN					; bit 3 of P1IN clear?
 	jz		while0						; Yes, branch back and wait
 
-	mov		#NOKIA_DATA, R12			; For testing just draw an 8 pixel high
-	mov		#0xE7, R13					; beam with a 2 pixel hole in the center
+writeBlock:
+	mov		#NOKIA_DATA, R12				; For testing just draw an 8 pixel high
+	mov		#0xFF, R13					; beam with a 2 pixel hole in the center
 	call	#writeNokiaByte
+	inc		R7
+	cmp	    #BlockWidth, R7
+	jeq		trap
+	jmp		writeBlock
 
-	inc		R10							; since rows are 8 times bigger than columns
-	and.w	#0x07, R10					; wrap over the row mod 8
-	inc		R11							; just let the columm overflow after 92 buttons
-	mov		R10, R12					; increment the row
-	mov		R11, R13					; and column of the next beam
-	call	#setAddress					; we draw
-
-	jmp		while1
+trap:
+	jmp		trap
 
 ;-------------------------------------------------------------------------------
 ;	Name:		initNokia		68(rows)x92(columns)
