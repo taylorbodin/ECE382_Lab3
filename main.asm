@@ -55,32 +55,119 @@ main:
 	clr		R10							; used to move the cursor around
 	clr		R11
 
-	clr		R7							; used as a loop counter for writeBlock
-
-	mov		#0x0004, R12				; R12 gets middle row for setAddress
-	mov		#0x002C, R13				; R13 gets the middle column for setAddress
+	clr		R12							; set up for 0,0 cursor start
+	clr	    R13
 
 	call	#setAddress
+	call	#writeBlock					; writes the initial block in the upper left
 
-while1:
-	bit.b	#8, &P2IN					; bit 3 of P1IN set?
-	jnz 	while1						; Yes, branch back and wait
+;--------------------------------------------------------------------------------------------
+pollUp:
+	mov		#0x20,	R14
+	bit.b	R14, &P2IN					; bit 5 (SW5) of P2IN set?
+	jnz		pollDown					; no, poll the next button
+	call	#waitForRelease
+	dec		R12
+	jn		topOfDisplay				; if dec sets the negative flag we're at the top
+	call	#writeBlock
+	jmp		pollUp
 
-while0:
-	bit.b	#8, &P2IN					; bit 3 of P1IN clear?
-	jz		while0						; Yes, branch back and wait
+topOfDisplay:							; Keep it at the top of the display
+	mov		#0x00, R12
+	call	#writeBlock
+	jmp		pollUp
+
+;---------------------------------------------------------------------------------------------
+pollDown:
+	mov		#0x10,	R14
+	bit.b	R14, &P2IN					; bit 4 (SW4) of P2IN set?
+	jnz		pollLeft
+	call	#waitForRelease
+	inc		R12
+	cmp		#0x08,R12					; if R12 >= 8 we're at the bottom of the display
+	jge		botOfDisplay
+	call	#writeBlock
+	jmp		pollUp
+
+
+botOfDisplay:							; keep it at the bottom, not that the display isn't
+	mov		#0x08, R12					; divisible by 8 so we have some of the block
+	call	#writeBlock					; "hanging off" the bottom
+	jmp		pollUp
+
+;---------------------------------------------------------------------------------------------
+pollLeft:
+	mov		#0x04,	R14
+	bit.b	R14, &P2IN					; SW2
+	jnz		pollRight
+	call	#waitForRelease
+	sub		#0x08, R13
+	jn		xLeftOfDisplay				; if dec sets the negative flag were at the eXtreme left
+	call	#writeBlock
+	jmp		pollUp
+
+xLeftOfDisplay:
+	mov		#0x00, R13
+	call	#writeBlock
+	jmp		pollUp
+;---------------------------------------------------------------------------------------------
+pollRight:
+	mov		#0x02,	R14
+	bit.b	R14, &P2IN					; SW1
+	jnz		pollUp
+	call	#waitForRelease
+	add		#0x08, R13
+	cmp		#0x58, R13
+	jge		xRightOfDisplay				; if R13 >= 88 >= 0x58 the we're at the eXtreme right (88 is 8 short of 96)
+	call	#writeBlock
+	jmp		pollUp						; you do the hokie pokie and you do it all again
+
+xRightOfDisplay:
+	mov		#0x58, R13
+	call	#writeBlock
+	jmp		pollUp
+
+;-------------------------------------------------------------------------------
+;	Name:		waitForRelease
+;	Inputs:		R14 which holds the pin in question
+;	Outputs:	none
+;	Purpose:	Polls the button and waits for a release
+;
+;-------------------------------------------------------------------------------
+waitForRelease:
+wait:
+	bit.b 	R14, &P2IN	;poll the appropriate pin
+	jz 		wait
+	ret
+;-------------------------------------------------------------------------------
+;	Name:		writeBlock
+;	Inputs:		R12		row
+;				R13		column
+;	Outputs:	none
+;	Purpose:	Writes an 8x8 block to the display at the adress passed by R12 and R13
+;
+;-------------------------------------------------------------------------------
 
 writeBlock:
-	mov		#NOKIA_DATA, R12				; For testing just draw an 8 pixel high
-	mov		#0xFF, R13					; beam with a 2 pixel hole in the center
+	call	#clearDisplay
+	call	#setAddress
+	push	R12							;Make a copy of these registers
+	push	R13
+	clr		R7
+write:
+	mov		#NOKIA_DATA, R12
+	mov		#0xFF, R13					;FF is a solid bar
 	call	#writeNokiaByte
-	inc		R7
+	inc		R7							;While R7 > 8 keep writing bars, else jump to cleanup
 	cmp	    #BlockWidth, R7
-	jeq		trap
-	jmp		writeBlock
+	jeq		cleanup
+	jmp		write
 
-trap:
-	jmp		trap
+cleanup:
+	clr		R7
+	pop 	R13
+	pop		R12
+	ret
 
 ;-------------------------------------------------------------------------------
 ;	Name:		initNokia		68(rows)x92(columns)
