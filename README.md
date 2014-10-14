@@ -20,13 +20,17 @@ The answers to the logic analyzer section will be posted to GitHub along with th
 |294|Command|00000010|
 
 ### Question 2 Waveforms
-![LINE 66](1.jpg)
+Line 66
+![LINE 66](1.jpg "Line 66")
 
-![LINE 276](2.jpg)
+Line 276
+![LINE 276](2.jpg "Line 276")
 
-![LINE 288](3.jpg)
+Line 288
+![LINE 288](3.jpg "Line 288")
 
-![LINE 294](4.jpg)
+Line 294
+![LINE 294](4.jpg "Line 294")
 
 ### Question 3
 
