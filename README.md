@@ -76,9 +76,8 @@ display. The structure of each section is very similar so pollUp was chosen as a
 pin in question into R14. A bit test is performed on the pin inquestion and if it is high (i.e. not pressed) a jump is 
 performed to the next button. If it is depressed, a subroutine called wait for release is called. This subroutine takes 
 R14 as an input and, not surprisingly, waits for that button to be released. After this housekeeping is taken care of then
-the main work of the loop begins. In the case of pollUp, R12 (row) is decremeneted which moves the cursor up one row. Finally,
-#writeBlock is called. If R12 is negative that implies that it is at the top of the top of the display. When this condition is 
-met the program simply jumps to the topOfDisplay which just sets the row to 0 and calls #writeBlock.  
+the main work of the loop begins. In the case of pollUp, R12 (row) is decremeneted which moves the cursor up one row. 
+Finally, #writeBlock is called. If R12 is negative that implies that it is at the top of the top of the display. When this condition is met the program simply jumps to the topOfDisplay which just sets the row to 0 and calls #writeBlock.  
 
 ```
 pollUp:
